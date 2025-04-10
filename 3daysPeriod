@@ -1,0 +1,33 @@
+var CalendarId = "xxxx0@group.calendar.google.com";
+var telegramToken = "xxx";
+var chatId = "xxx";
+
+function dailyEventMessage() {
+  let msg = "";
+  for (let i = 1; i <= 3; i++) {
+    let d = new Date();
+    d.setDate(d.getDate() + i);
+    let dateStr = d.toLocaleDateString("th-TH", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    let label = ["", "พรุ่งนี้", "มะรืนนี้", "อีก 3 วัน"][i];
+    let events = CalendarApp.getCalendarById(CalendarId).getEventsForDay(d);
+    msg += `📣 แจ้งเตือนภารกิจ *${label}* \n(${dateStr})\n`;
+    if (events.length == 0) {
+      msg += `❌ ไม่มีกิจกรรม\n\n`;
+      continue;
+    }
+    msg += `🔶 มีกิจกรรมทั้งหมด ${events.length} รายการ\n`;
+    events.forEach((e, idx) => {
+      msg += `\n${idx + 1}. 📁เรื่อง : ${e.getTitle()}\n   ⏰ เวลา : ${e.getStartTime().toTimeString().slice(0,5)} - ${e.getEndTime().toTimeString().slice(0,5)}\n   📍 รายละเอียด : ${e.getDescription() || 'ไม่มีรายละเอียด'}`;
+    });
+    msg += "\n\n";
+  }
+  sendTelegram(msg.trim());
+}
+
+function sendTelegram(msg) {
+  UrlFetchApp.fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
+  });
+}
