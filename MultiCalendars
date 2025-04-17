@@ -1,0 +1,47 @@
+// ─── CONFIG ───────────────────────────────────────────────────────────────
+const calendars = [
+  { id: 'aaa@group.calendar.google.com', name: 'A-Level' },
+  { id: 'bbb@group.calendar.google.com', name: 'คอร์ส ม.1' },
+  { id: 'ccc@group.calendar.google.com', name: 'คอร์ส ม.4' },
+  { id: 'ddd@group.calendar.google.com', name: 'คอร์ส ม.5' },
+  { id: 'eee@group.calendar.google.com', name: 'คอร์ส ม.6' },
+  // …add more
+];
+
+var telegramToken = "xxx";  // Telegram bot token
+var chatId = "xxx";  // Telegram chat ID
+
+// ─── CONFIG END ────────────────────────────────────────────────────────────
+
+function dailyEventMessage() {
+  const now = new Date(), tz = Session.getScriptTimeZone();
+  const fmtD = d => d.toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' });
+  const fmtT = dt => Utilities.formatDate(dt, tz, 'HH:mm');
+
+  const text = calendars.map(c => {
+    const evs = CalendarApp.getCalendarById(c.id).getEventsForDay(now);
+    const header = `📣 ปฏิทิน: *${c.name}*`;
+    const info = evs.length
+      ? `แจ้งเตือน ${fmtD(now)} \n  🔶 มีทั้งหมด ${evs.length} กิจกรรม`
+      : `ไม่มีรายการ ${fmtD(now)}`;
+    const details = evs.map((e, i) =>
+      `${i+1}. 📁 ${e.getTitle()}
+   ⏰ ${fmtT(e.getStartTime())}-${fmtT(e.getEndTime())}
+   📍 ${e.getDescription()||'-'}`
+    ).join('\n');
+    return [header, info, details].filter(Boolean).join('\n');
+  }).join('\n\n');
+
+  UrlFetchApp.fetch(
+    `https://api.telegram.org/bot${telegramToken}/sendMessage`,
+    {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'Markdown'
+      })
+    }
+  );
+}
